@@ -19,4 +19,4 @@ services:
     runtime: nvidia
     volumes:
       - ./tutorial/:/root/tutorial/
-      - ./ollama/:/root/.ollama/
+      - ./env/ollama/:/root/.ollama/

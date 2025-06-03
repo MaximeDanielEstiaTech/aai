@@ -41,34 +41,23 @@ RUN ln -s /usr/bin/python3.13 /usr/bin/python \
 
 RUN pip install jupyter \
     && pip install ipykernel -U --user --force-reinstall \
-    && pip install ipywidgets \
-    && pip install matplotlib \
-    && pip install numpy pandas \
-    && pip install pyzotero \
-    && pip install langchain \
-    && pip install langchain-community \
-    && pip install langchain-chroma \
-    && pip install langgraph \
-    && pip install pypdf \
-    && pip install langfuse
+    && pip install ipywidgets matplotlib numpy pandas pypdf
 
+# python library for agentic AI
+COPY env/requirements.txt /root/requirements.txt
+RUN pip install -r /root/requirements.txt
 
+# Install Sqlite3
 WORKDIR /usr/local/src/
-
 RUN git clone https://github.com/coleifer/pysqlite3.git 
-
 WORKDIR /usr/local/src/pysqlite3/
-
 RUN python setup.py build_full
 RUN python setup.py install
-
-
-
 RUN cp -r /usr/local/src/pysqlite3/build/lib.linux-x86_64-cpython-313/pysqlite3/* /usr/lib/python3.13/sqlite3/
 
 # Install VSCODE server
 RUN curl -fsSL https://code-server.dev/install.sh | sh
-COPY vscode-server-config.yaml /root/.config/code-server/config.yaml
+COPY env/vscode-server-config.yaml /root/.config/code-server/config.yaml
 
 # install VSCODE extensions
 RUN code-server --install-extension ms-python.python
