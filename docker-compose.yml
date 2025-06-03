@@ -1,12 +1,13 @@
 version: '3.8'
 
 services:
-  my_container:
+  aai:
     # from dockerfile
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: my_container
+    image: tydius/aai:latest
+    container_name: aai
     restart: unless-stopped
     cap_add:
       - SYS_PTRACE

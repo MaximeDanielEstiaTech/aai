@@ -71,13 +71,13 @@ RUN curl -fsSL https://code-server.dev/install.sh | sh
 COPY vscode-server-config.yaml /root/.config/code-server/config.yaml
 
 # install VSCODE extensions
-RUN code-server --install-extension ms-python.python \	
-    && code-server --install-extension ms-python.debugpy \	
-    && code-server --install-extension ms-toolsai.jupyter \	
-    && code-server --install-extension ms-toolsai.jupyter-keymap \	
-    && code-server --install-extension ms-toolsai.jupyter-renderers \	
-    && code-server --install-extension ms-toolsai.vscode-jupyter-cell-tags \	
-    && code-server --install-extension ms-toolsai.vscode-jupyter-slideshow
+RUN code-server --install-extension ms-python.python
+RUN code-server --install-extension ms-python.debugpy
+RUN code-server --install-extension ms-toolsai.jupyter
+RUN code-server --install-extension ms-toolsai.jupyter-keymap	
+RUN code-server --install-extension ms-toolsai.jupyter-renderers
+RUN code-server --install-extension ms-toolsai.vscode-jupyter-cell-tags
+RUN code-server --install-extension ms-toolsai.vscode-jupyter-slideshow
     
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
