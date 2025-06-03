@@ -4,7 +4,7 @@ services:
   aai:
     # from dockerfile
     build:
-      context: .
+      context: ./env
       dockerfile: Dockerfile
     image: tydius/aai:latest
     container_name: aai
