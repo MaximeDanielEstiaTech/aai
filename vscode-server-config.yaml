@@ -1,0 +1,4 @@
+bind-addr: 0.0.0.0:5000
+auth: password
+password: estia64210. # Randomly generated for each config.yaml
+cert: false

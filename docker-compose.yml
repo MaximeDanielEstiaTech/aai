@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  my_container:
+    # from dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my_container
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+    shm_size: 1024m
+    ports:
+      - "5000:5000"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    runtime: nvidia
+    volumes:
+      - ./tutorial/:/root/tutorial/
+      - ./ollama/:/root/.ollama/
