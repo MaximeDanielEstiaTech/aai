@@ -15,16 +15,16 @@ USER root
 RUN mkdir -p /tutorial/
 
 RUN apt-get update 
-RUN apt-get install -y software-properties-common curl
-RUN apt-get install -y git
+
+RUN apt-get install -y software-properties-common 
+RUN apt-get install -y curl git nano pciutils lshw 
+RUN apt-get install -y build-essential pkg-config  libsqlite3-dev libcairo2-dev
 
 RUN add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update
 
-RUN apt-get install -y nano pciutils lshw
 
-RUN apt-get install -y build-essential libsqlite3-dev
-
+# Install Python 3.13
 RUN apt-get install -y python3.13-full python3.13-dev python3.13-venv \
     && python3.13 -m ensurepip --upgrade \
     && python3.13 -m pip install --upgrade pip setuptools wheel build
@@ -39,15 +39,12 @@ RUN ln -s /usr/bin/python3.13 /usr/bin/python \
      && ln -s /usr/local/bin/pip3.13 /usr/bin/pip \
      && ln -s /usr/local/bin/pip3.13 /usr/bin/pip3
 
-RUN pip install jupyter \
-    && pip install ipykernel -U --user --force-reinstall \
-    && pip install ipywidgets matplotlib numpy pandas pypdf
-
-# python library for agentic AI
-COPY env/requirements.txt /root/requirements.txt
+# Install Python 3.13 libraries
+COPY ./requirements.txt /root/requirements.txt
 RUN pip install -r /root/requirements.txt
 
-# Install Sqlite3
+
+# Reinstall Sqlite3 for ChromaDB
 WORKDIR /usr/local/src/
 RUN git clone https://github.com/coleifer/pysqlite3.git 
 WORKDIR /usr/local/src/pysqlite3/
@@ -57,7 +54,7 @@ RUN cp -r /usr/local/src/pysqlite3/build/lib.linux-x86_64-cpython-313/pysqlite3/
 
 # Install VSCODE server
 RUN curl -fsSL https://code-server.dev/install.sh | sh
-COPY env/vscode-server-config.yaml /root/.config/code-server/config.yaml
+COPY ./config.yaml /root/.config/code-server/config.yaml
 
 # install VSCODE extensions
 RUN code-server --install-extension ms-python.python
