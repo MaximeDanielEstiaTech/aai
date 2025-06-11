@@ -25,3 +25,11 @@ docker compose up
 - Open your browser and enter `http://localhost:5000`
 - Open folder */root/tutorial* and follow instructions
 
+
+
+
+
+# TODO
+- [ ] Automatic Prompt Engineering
+- [ ] Msty app
+- [ ] Model Context Protocol (MCP)
