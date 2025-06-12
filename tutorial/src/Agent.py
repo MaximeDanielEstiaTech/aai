@@ -37,6 +37,8 @@ class Agent(Chatbot):
         while not stop:
             ai_message = self.streamUntil(STOP_PHRASE)
             self.history.append(ai_message)
+            clear_output(wait=True)
+            self.print_history()
             try:
                 action = self.parse_action(ai_message)
                 if isinstance(action, AgentAction):
@@ -92,7 +94,7 @@ class Agent(Chatbot):
             result = tool.func(**action_input)
         else:
             result = tool.func()
-        return ToolMessage(content=f"Observation: {result}", tool_call_id=tool.func.__name__)
+        return ToolMessage(content=f"{result}", tool_call_id=tool.func.__name__)
     
     
     def parse_action(self, response:AIMessage) -> Union[AgentAction, AgentActionMessageLog, AgentFinish]:
@@ -110,13 +112,20 @@ class Agent(Chatbot):
         except Exception as e:
             if not includes_answer:
                 #traceback.print_exc()
-                raise SyntaxError("""ALWAYS use the following format for the action:
-                                  
-Action:
-```
-$JSON_BLOB
-```
-
-ALWAYS use the exact characters `Final Answer:` when giving your final answer.""")
+                raise SyntaxError("""[SyntaxError] 
+- If an action is needed, use the following format:
+  Action: 
+  ```
+  {{
+    "action": "tool_name",
+    "action_input": "your input here"
+  }}
+  ```
+- If you want to give your final answer, use the following format:
+  Final Answer: 
+  ```
+  your final answer here
+  ```
+""")
             output = response.content.split(FINAL_ANSWER_ACTION)[-1].strip()
             return AgentFinish({"output": output}, response.content)
