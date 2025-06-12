@@ -1,5 +1,5 @@
 from inspect import signature
-from langchain.schema import BaseMessage, HumanMessage, SystemMessage
+from langchain.schema import BaseMessage, HumanMessage, SystemMessage, AIMessage
 import re
 from typing import List, Union
 from langchain_core.agents import AgentAction, AgentFinish, AgentActionMessageLog
@@ -13,6 +13,10 @@ import sys
 from langchain_ollama import ChatOllama
 from langchain_core.tools import Tool
 from .Chatbot import Chatbot
+import time
+
+
+STOP_PHRASE = "Observation:"
 
 class Agent(Chatbot):
 
@@ -21,32 +25,56 @@ class Agent(Chatbot):
     def __init__(self, llm: ChatOllama, tools: List[Tool], history: List[BaseMessage] = []):
         """Initialize the chatbot with an LLM, tools, and an optional history."""
         super().__init__(llm, history)
-        self.llm = llm.bind(stop=["Observation:"])
         self.tools = tools
+
 
     def invoke(self, prompt:str) -> None:
         """Run the chatbot in interactive mode."""
         self.history.append(HumanMessage(content=prompt))
         clear_output(wait=True)
-        self.pretty_print()
+        self.print_history()
         stop = False
         while not stop:
-            ai_pre_action_message = self.llm.invoke(self.history)
-            self.history.append(ai_pre_action_message)
+            ai_message = self.streamUntil(STOP_PHRASE)
+            self.history.append(ai_message)
             try:
-                action = self.parse_action(ai_pre_action_message.content)
+                action = self.parse_action(ai_message)
                 if isinstance(action, AgentAction):
                     tool_message = self.call_tool(action)
+                    tool_message.pretty_print()
                     self.history.append(tool_message)
                 if isinstance(action, AgentFinish):
                     stop = True
             except SyntaxError as e:
-                self.history.append(SystemMessage(content=str(e)))
+                system_message = SystemMessage(content=str(e))
+                system_message.pretty_print()
+                self.history.append(system_message)
             except Exception as e:
                 traceback.print_exc()
                 sys.exit()
-            clear_output(wait=True)
-            self.pretty_print()
+
+
+    def streamUntil(self, stop: str) -> AIMessage:
+        """Stream the LLM output until the stop phrase is found."""
+        ai_message = AIMessage(content="")
+        ai_message.pretty_print()
+        print()
+        for chunk in self.llm.stream(self.history):
+            ai_message.content += chunk.content
+            # Check for the stop phrase in the last part of the message
+            start_ind = ai_message.content.find(stop, len(ai_message.content) - len(chunk.content) - len(stop))
+            if start_ind != -1:
+                end_ind = start_ind + len(stop)
+                len_without_chunk = len(ai_message.content) - len(chunk.content)
+                i = end_ind - len_without_chunk
+                if i > 0:
+                    print(chunk.content[:i], end="")
+                ai_message.content = ai_message.content[:end_ind] 
+                #sys.exit()
+                break
+            print(chunk.content, end="")
+        print()
+        return self.sanitize(ai_message)
 
 
     def call_tool(self, action: AgentAction) -> ToolMessage:
@@ -67,20 +95,28 @@ class Agent(Chatbot):
         return ToolMessage(content=f"Observation: {result}", tool_call_id=tool.func.__name__)
     
     
-    def parse_action(self, text:str) -> Union[AgentAction, AgentActionMessageLog, AgentFinish]:
+    def parse_action(self, response:AIMessage) -> Union[AgentAction, AgentActionMessageLog, AgentFinish]:
         """Parse the action from the LLM output text and return an AgentAction or AgentFinish object."""
         FINAL_ANSWER_ACTION = "Final Answer:"
         pattern = re.compile(r"^.*?`{3}(?:json)?\n?(.*?)`{3}.*?$", re.DOTALL)
-        includes_answer = FINAL_ANSWER_ACTION in text
+        includes_answer = FINAL_ANSWER_ACTION in response.content
         try:
-            found = pattern.search(text)
+            found = pattern.search(response.content)
             if not found:
-                raise ValueError("action not found.")
+                raise ValueError("[SyntaxError] Action not found. Did you use the correct format?")
             action = found.group(1)
-            response = ast.literal_eval(action.strip())
-            return AgentAction(response["action"], response.get("action_input", {}), text)
+            ans = ast.literal_eval(action.strip())
+            return AgentAction(ans["action"], ans.get("action_input", {}), response.content)
         except Exception as e:
             if not includes_answer:
-                raise SyntaxError("Reminder to always use the exact characters `Final Answer:` when responding.")
-            output = text.split(FINAL_ANSWER_ACTION)[-1].strip()
-            return AgentFinish({"output": output}, text)
+                #traceback.print_exc()
+                raise SyntaxError("""ALWAYS use the following format for the action:
+                                  
+Action:
+```
+$JSON_BLOB
+```
+
+ALWAYS use the exact characters `Final Answer:` when giving your final answer.""")
+            output = response.content.split(FINAL_ANSWER_ACTION)[-1].strip()
+            return AgentFinish({"output": output}, response.content)

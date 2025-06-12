@@ -2,6 +2,8 @@ from typing import List
 from langchain.schema import BaseMessage, AIMessage, HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 from IPython.display import clear_output
+import re
+import time
 
 class Chatbot:
     llm: ChatOllama
@@ -18,11 +20,9 @@ class Chatbot:
 
     def invoke(self, prompt:str) -> AIMessage:
         """Run the chatbot with the current history."""
+        self.history.append(HumanMessage(content=prompt))
         clear_output(wait=True)
-        self.pretty_print()
-        human_message = HumanMessage(content=prompt)
-        human_message.pretty_print()
-        self.history.append(human_message)
+        self.print_history()
         ai_message = AIMessage(content="")
         ai_message.pretty_print()
         print()
@@ -30,7 +30,7 @@ class Chatbot:
             print(chunk.content, end="")
             ai_message.content += chunk.content
         print()
-        self.history.append(ai_message)
+        self.history.append(self.sanitize(ai_message))
         return ai_message
         
     
@@ -43,7 +43,13 @@ class Chatbot:
             self.invoke(prompt)
 
 
-    def pretty_print(self) -> None:
+    def print_history(self) -> None:
         """Pretty print the chatbot's history."""
         for message in self.history:
             message.pretty_print()
+            time.sleep(0.1)
+
+    def sanitize(self, message: AIMessage) -> AIMessage:
+        """Remove <think> tags and extra whitespace from the message content."""
+        new_message_content = re.sub(r"<think>.*?</think>", "", message.content, flags=re.DOTALL).strip()
+        return AIMessage(content=new_message_content)
